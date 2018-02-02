@@ -112,7 +112,6 @@ Server.prototype._emit = function(event, params, jsonRpc) {
 }
 
 Server.prototype._checkParams = function(rules, params) {
-    console.log(rules, params);
     var checkedParams = {};
     for (let param in rules) {
         if (rules[param] === true && params[param] !== undefined) {
