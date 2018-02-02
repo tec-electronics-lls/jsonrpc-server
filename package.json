@@ -1,0 +1,11 @@
+{
+  "name": "jsonrpc-server",
+  "version": "0.1.0",
+  "description": "HTTP Server for JSON-RPC protocol",
+  "main": "./src/jsonrpc-server.js",
+  "directories": {
+  },
+  "scripts": {},
+  "author": "Roman Sorokin",
+  "license": "MIT"
+}
