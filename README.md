@@ -50,22 +50,28 @@ const JsonRPCServer = require('jsonrpc-server');
 // Создаем экземпляр сервера
 var server = new JsonRPCServer();
 
-// Вешаем обработчики методов
-server.on('hello', (params, conn)=>{
-    conn.result('Hello, developer!');
+// Обработчик на метод Ping
+server.on('Ping', (params, conn) => {
+    conn.result('Pong');
 });
 
-// Можно с проверкой входящих данных, если это объект
-server.on('subtract', {
-    a: true,        // Параметр обязательно должен присутствовать
-    b: true,        // Параметр обязательно должен присутствовать
-    c: false,       // Параметр не обязателен
-    z: null         // Параметр не обязателен, если это пустая строка или 0 - об будет преобразован в null
+// Обработчик на метод Hello, свойство title - обязательно
+server.on('Hello', {
+    title: true
 }, (params, conn)=>{
-    conn.result(params);
+    conn.result('Hello, ' + params.title + '!');
 });
 
-// Если это ошибка
+// Обработчик на метод Summary - сумма элементов массива без ограничения по длине
+server.on('Summary', 0, (params, conn) => {
+    let sum = 0;
+    for (let i in params) {
+        sum += params[i];
+    }
+    conn.result(sum);
+});
+
+// Возврат ошибки
 server.on('ItIsNotWork', (params, conn)=>{
     conn.error({
         code: 1,
