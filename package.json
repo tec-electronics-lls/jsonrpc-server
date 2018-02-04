@@ -1,11 +1,14 @@
 {
-  "name": "jsonrpc-server",
-  "version": "0.1.0",
-  "description": "HTTP Server for JSON-RPC protocol",
-  "main": "./src/jsonrpc-server.js",
-  "directories": {
-  },
-  "scripts": {},
-  "author": "Roman Sorokin",
-  "license": "MIT"
+    "name": "jsonrpc-server",
+    "version": "0.1.0",
+    "description": "HTTP Server for JSON-RPC specification",
+    "main": "./src/jsonrpc-server.js",
+    "directories": {},
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/r1000ru/jsonrpc-server.git"
+    },
+    "scripts": {},
+    "author": "Roman Sorokin <mail@r1000.ru>",
+    "license": "MIT"
 }
