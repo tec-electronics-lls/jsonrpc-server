@@ -90,6 +90,9 @@ server.listen();
  - **JsonRPCServer.listen ([port, [interface]])** - запуск сервера.
    - *port* - необязательный аргумент номера порта, который будет слушать сервер. Если не указан, устанавливается 8080
    - *interface* - необязательный аргумент сетевого интерфейса (ip-адрес), который будет слушать сервер. Может устанавливаться только после порта. Если не указан, устанваливается *localhost*
+ - **JsonRPCServer.setError(type, error) - переопределение стандартных ошибок.
+   - *type* - тип ошибки: PARSE_ERROR, INVALID_REQUEST, METHOD_IS_NOT_FOUND, INVALID_PARAMS, INTERNAL_ERROR, SERVER_ERROR
+   - *error* - стандартный объект ошибки: `{code: N, message: 'your message'}`
 
  - **JsonRPCServer.on(method, [rules], onRequestCallback)** - установка реакции на запрос к какому-либо методу.
    - *method* - обязательный аргумент названия метода
