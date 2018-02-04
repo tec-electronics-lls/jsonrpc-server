@@ -51,9 +51,9 @@ var Server = function() {
     this._events = {};
     this._httpserver = http.createServer();
 
-    this._httpserver.on('request', (request, response)=>{
+    this._httpserver.on('request', (request, response) => {
         let connection = new Connection(request, response);
-        connection.get((json)=>{
+        connection.get((json) => {
 
             let jsonRpc = new JsonRPC(connection);
 
@@ -75,7 +75,7 @@ var Server = function() {
             }
 
             // Если проверки прошли успешно
-            
+
             // Если есть идентификатор запроса - присвоим его
             if (json.id) {
                 jsonRpc.setId(json.id);
@@ -90,28 +90,47 @@ var Server = function() {
 
 Server.prototype._emit = function(event, params, jsonRpc) {
     // Если по какой-то причине метод не найден именно сейчас
-    if (!this._events || !this._events[event] || !this._events[event].fn || !typeof(this._events[event].fn)  === 'function') {
+    if (!this._events || !this._events[event] || !this._events[event].fn || !typeof(this._events[event].fn) === 'function') {
         jsonRpc.error(this.errors.INTERNAL_ERROR.error, this.errors.INTERNAL_ERROR.httpCode);
         return;
     }
 
-    // Если проверок не было указано
-    if (!this._events[event].checks) {
-        this._events[event].fn(params, jsonRpc);
-        return;
-    }
-
     // Проверим параметры
-    let checkedParams = this._checkParams(this._events[event].checks, params);
-    if (!checkedParams) {
+    let checkedParams = this._checkParams(this._events[event].rules, params);
+
+    // Если вернулось false - ошибка параметров
+    if (checkedParams === false) {
         jsonRpc.error(this.errors.INVALID_PARAMS.error, this.errors.INVALID_PARAMS.httpCode);
         return;
     }
 
+    // Вызываем логику пользователя
     this._events[event].fn(checkedParams, jsonRpc);
 }
 
 Server.prototype._checkParams = function(rules, params) {
+    // Если правила не заданы
+    if (rules === false) {
+        return params;
+    }
+
+    // Если проверяется длина массива
+    if (typeof(rules) === 'number') {
+        // Если передан не массив
+        if (!Array.isArray(params)) {
+            return false;
+        }
+
+        // Если указана длина массива и он ей не соответствует
+        if (rules !== 0 && params.length !== rules) {
+            return false;
+        }
+
+        // Если длина не указана (0) или массив ей соответствует
+        return params;
+    }
+
+    // Если проверяется объект
     var checkedParams = {};
     for (let param in rules) {
         if (rules[param] === true && params[param] !== undefined) {
@@ -120,10 +139,10 @@ Server.prototype._checkParams = function(rules, params) {
         } else if (rules[param] === true && params[param] === undefined) {
             // Если параметр обязателен и его нет - прерываемся
             return false;
-        } if (rules[param] === false && params[param] !== undefined) {
+        } else if (rules[param] === false && params[param] !== undefined) {
             // Если параметр не обязателен и он есть
             checkedParams[param] = params[param];
-        } else if (rules[param] === null && params[param] !== undefined && (params[param] === '' || params[param] === 0)) {
+        } else if (rules[param] === null && params[param] !== undefined && (params[param] === null || params[param] === '' || params[param] === 0)) {
             // Если нулибельный параметр не обязателен, но он есть и равен пустой строке или нулю
             checkedParams[param] = null;
         }
@@ -132,14 +151,14 @@ Server.prototype._checkParams = function(rules, params) {
     return checkedParams;
 }
 
-Server.prototype.on = function(event, checks, func) {
-    if (typeof(checks) === 'function') {
-        func = checks;
-        checks = false;
+Server.prototype.on = function(event, rules, func) {
+    if (typeof(rules) === 'function') {
+        func = rules;
+        rules = false;
     }
     this._events[event] = {
         fn: func,
-        checks: checks
+        rules: rules
     };
 }
 
