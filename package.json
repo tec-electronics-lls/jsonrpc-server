@@ -1,5 +1,5 @@
 {
-    "name": "@r1000ru/jsonrpc-server",
+    "name": "jsonrpc-server",
     "version": "0.1.0",
     "description": "HTTP Server for JSON-RPC specification",
     "main": "./src/jsonrpc-server.js",
