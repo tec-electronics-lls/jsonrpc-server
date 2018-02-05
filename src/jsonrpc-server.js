@@ -142,9 +142,11 @@ Server.prototype._checkParams = function(rules, params) {
         } else if (rules[param] === false && params[param] !== undefined) {
             // Если параметр не обязателен и он есть
             checkedParams[param] = params[param];
-        } else if (rules[param] === null && params[param] !== undefined && (params[param] === null || params[param] === '' || params[param] === 0)) {
+        } else if (rules[param] === null && !params[param]) {
             // Если нулибельный параметр не обязателен, но он есть и равен пустой строке или нулю
             checkedParams[param] = null;
+        } else if (rules[param] === null && params[param]) {
+            checkedParams[param] = params[param];
         }
     }
 
