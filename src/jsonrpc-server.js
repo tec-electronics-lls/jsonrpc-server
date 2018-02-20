@@ -52,6 +52,18 @@ var Server = function() {
     this._httpserver = http.createServer();
 
     this._httpserver.on('request', (request, response) => {
+        if (request.method === 'OPTIONS') {
+            let headers = {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS, POST',
+                'Access-Control-Allow-Headers': 'Origin, Authorization, Accept, Content-Type'
+            }
+            
+            response.writeHead(200, headers);
+            response.end();
+            return;
+        }
+        
         let connection = new Connection(request, response);
         connection.get((json) => {
 
