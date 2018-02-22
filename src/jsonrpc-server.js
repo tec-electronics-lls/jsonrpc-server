@@ -2,7 +2,9 @@ const Connection = require('./connection'),
     JsonRPC = require('./jsonrpc'),
     http = require('http');
 
-var Server = function() {
+var Server = function(cors) {
+    this.cors = cors || {};
+
     this.errors = {
         PARSE_ERROR: {
             error: {
@@ -53,13 +55,7 @@ var Server = function() {
 
     this._httpserver.on('request', (request, response) => {
         if (request.method === 'OPTIONS') {
-            let headers = {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS, POST',
-                'Access-Control-Allow-Headers': 'Origin, Authorization, Accept, Content-Type'
-            }
-            
-            response.writeHead(200, headers);
+            response.writeHead(200, this.cors);
             response.end();
             return;
         }
@@ -67,7 +63,7 @@ var Server = function() {
         let connection = new Connection(request, response);
         connection.get((json) => {
 
-            let jsonRpc = new JsonRPC(connection);
+            let jsonRpc = new JsonRPC(connection, this.cors);
 
             // Проверим что это объект
             if (typeof(json) !== 'object') {

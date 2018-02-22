@@ -1,6 +1,12 @@
 const JsonRPCServer = require('../src/jsonrpc-server');
 
-let server = new JsonRPCServer();
+let corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'OPTIONS, POST',
+    'Access-Control-Allow-Headers': 'Origin, Authorization, Accept, Content-Type'
+};
+
+let server = new JsonRPCServer(corsHeaders);
 
 server.on('Hello', {
     title: true

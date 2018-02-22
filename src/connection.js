@@ -1,4 +1,5 @@
-var Connection = function(request, response) {
+var Connection = function(request, response, cors) {
+    this._cors = cors;
     this._request = request;
     this._response = response;
 }
@@ -42,7 +43,7 @@ Connection.prototype.get = function(callback) {
 Connection.prototype.send = function(data, httpCode) {
     // Если данные не переданы - ответ не подразумевает контента
     if (data === undefined) {
-        this._response.writeHead(httpCode || 200);
+        this._response.writeHead(httpCode || 200, cors);
         this._response.end();
         return;
     }
