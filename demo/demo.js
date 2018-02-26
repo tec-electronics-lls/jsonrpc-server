@@ -1,31 +1,25 @@
 const JsonRPCServer = require('../src/jsonrpc-server');
 
-let corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'OPTIONS, POST',
-    'Access-Control-Allow-Headers': 'Origin, Authorization, Accept, Content-Type'
-};
-
-let server = new JsonRPCServer(corsHeaders);
+let server = new JsonRPCServer();
 
 server.on('Hello', {
     title: true
-}, (params, conn) => {
+}, (params, response) => {
     let result = 'Hello, ' + params.title
-    conn.result(result);
+    response(undefined, result);
 });
 
-server.on('Ping', (params, conn) => {
-    conn.result('Pong');
+server.on('Ping', (params, response) => {
+    response(undefined, 'Pong');
 });
 
-// Складываем значения переданного массива без ограничения по длине
-server.on('Summary', 3, (params, conn) => {
-    let sum = 0;
+// Складываем значения переданного массива длиной в 3 элемента
+server.on('Summary', 3, (params, response) => {
+    var sum = 0;
     for (let i in params) {
         sum += params[i];
     }
-    conn.result(sum);
+    response(undefined, sum);
 });
 
 server.listen();
