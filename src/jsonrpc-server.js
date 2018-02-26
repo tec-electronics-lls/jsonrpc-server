@@ -196,7 +196,7 @@ Server.prototype._checkParams = function(rules, params, callback) {
 
 Server.prototype._send = function(response, jrpc) {
     response.writeHead(200, this._headers);
-    let content = jrpc && jrpc.error || jrpc.id ? JSON.stringify(jrpc) : undefined;
+    let content = (jrpc && (jrpc.error || jrpc.id)) ? JSON.stringify(jrpc) : undefined;
     response.end(content);
 }
 
