@@ -108,13 +108,6 @@ server.on('ItIsNotWork', (params, response)=>{
     });
 });
 
-// Если в результате выполнения может быть как ошибка, так и результат и необходимо разобрать
-server.on('WorkOrNotWork', (params, response)=>{
-    // Выполняем какую-то логику
-    myFunc((err, result) => {
-        response(err, result);
-    });
-});
 
 // Запустим сервер
 server.listen();
