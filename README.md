@@ -71,6 +71,7 @@
 
 1. Установите пакет сервера: `npm install git+https://gitlab.tecel.ru/NodeLibs/jsonrpc-server.git --save`
 1. Напишите код:
+
 ```
 // Подключаем модуль
 const JsonRPCServer = require('jsonrpc-server');
@@ -117,4 +118,5 @@ server.on('WorkOrNotWork', (params, response)=>{
 
 // Запустим сервер
 server.listen();
+
 ```
