@@ -140,7 +140,7 @@ Server.prototype._checkParams = function(rules, params, callback) {
     }
 
     // Если правила не заданы
-    if (rules === false) {
+    if (!rules && rules !== 0) {
         callback(undefined, params);
         return;
     }
