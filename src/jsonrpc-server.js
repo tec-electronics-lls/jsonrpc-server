@@ -102,9 +102,9 @@ Server.prototype._onRequest = function(request, response) {
             }
 
             // Выполним метод, передав в него параметры и коллбэк
-            this._methods[json.method].fn(params, (error, result)=>{
+            this._methods[json.method].fn(params, (err, result)=>{
                 if (err) {
-                    jrpc.error = error;
+                    jrpc.error = err;
                     this._send(response, jrpc);
                     return;
                 }
