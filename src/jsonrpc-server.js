@@ -26,7 +26,7 @@ Server.prototype.listen = function(port, interface, callback) {
     }
 
     this._httpserver.listen(port || 8080, interface, callback);
-}
+};
 
 /**
  * Метод навешивает реакцию на метод JSONRPC
@@ -44,7 +44,7 @@ Server.prototype.on = function(method, rules, func) {
         fn: func,
         rules: rules
     };
-}
+};
 
 Server.prototype._onRequest = function(request, response) {
     if (request.method === 'OPTIONS') {
@@ -102,21 +102,21 @@ Server.prototype._onRequest = function(request, response) {
             }
 
             // Выполним метод, передав в него параметры и коллбэк
-            this._methods[json.method].fn(params, (err, result)=>{
+            this._methods[json.method].fn(params, (err, result, force)=>{
                 if (err) {
                     jrpc.error = err;
-                    this._send(response, jrpc);
+                    this._send(response, jrpc, force);
                     return;
                 }
 
                 jrpc.result = result;
-                this._send(response, jrpc);
+                this._send(response, jrpc, force);
                 return;
             });
 
         });
     });
-}
+};
 
 Server.prototype._getBody = function(request, callback) {
     let buffers = [];
@@ -128,8 +128,8 @@ Server.prototype._getBody = function(request, callback) {
     }).on('error', (e)=>{
         console.log(e);
         callback();
-    })
-}
+    });
+};
 
 Server.prototype._checkParams = function(rules, params, callback) {
     // Если параметры не переданы
@@ -194,9 +194,9 @@ Server.prototype._checkParams = function(rules, params, callback) {
 
 
 
-Server.prototype._send = function(response, jrpc) {
+Server.prototype._send = function(response, jrpc, force) {
     response.writeHead(200, this._headers);
-    let content = (jrpc && (jrpc.error || jrpc.id)) ? JSON.stringify(jrpc) : undefined;
+    let content = (jrpc && (jrpc.error || jrpc.id || force)) ? JSON.stringify(jrpc) : undefined;
     response.end(content);
 }
 
