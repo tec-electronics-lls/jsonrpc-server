@@ -1,38 +1,33 @@
 const errors = require('./modules/errors'),
-    http = require('http');
+    HttpServer = require('./modules/http-server'),
+    NatsServer = require('./modules/nats-server');
+    Validator = require('./modules/validator');
 
-var Server = function(headers) {
-    this._headers = headers || {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'OPTIONS, POST',
-        'Access-Control-Allow-Headers': 'Origin, Accept, Content-Type'
-    };
-
-    this._headers['Content-Type'] = 'application/json';
-
+var Server = function(headers, server) {
     this._methods = {};
     
-    this._httpserver = http.createServer();
+    this._validator = new Validator();
 
-    this._httpserver.on('request', (request, response) => {
-        this._onRequest(request, response);
-    });
-}
-
-Server.prototype.listen = function(port, interface, callback) {
-    if (typeof(interface) === 'function') {
-        callback = interface;
-        interface = undefined;
+    this._http = new HttpServer(headers, server);
+    
+    var self = this;
+    
+    this._http.onRequest = function(input, callback) {
+        self._onRequest(input, callback);
     }
-
-    this._httpserver.listen(port || 8080, interface, callback);
-};
+    
+    this._nats = new NatsServer();
+    this._nats.onRequest = function(input, callback) {
+        self._onRequest(input, callback);
+    }
+    
+}
 
 /**
  * Метод навешивает реакцию на метод JSONRPC
- * @param {string} event - 
- * @param {object} rules 
- * @param {function} func 
+ * @param {string} event Метод
+ * @param {object} rules Правила валидации параметров
+ * @param {function} func Функция, выполняемая для обработки метода
  */
 Server.prototype.on = function(method, rules, func) {
     if (typeof(rules) === 'function') {
@@ -46,158 +41,93 @@ Server.prototype.on = function(method, rules, func) {
     };
 };
 
-Server.prototype._onRequest = function(request, response) {
-    if (request.method === 'OPTIONS') {
-        this._send(response);
+
+Server.prototype.listen = function(port, iface, callback) {
+    if (typeof(interface) === 'function') {
+        callback = interface;
+        interface = undefined;
+    }
+
+    this._http.listen(port || 8080, iface, callback);
+};
+
+Server.prototype.nats = function(options, channel) {
+    this._nats.listen(options, channel);
+}
+
+
+
+Server.prototype._onRequest = function(content, callback) {
+    let jrpc = {
+        jsonrpc: "2.0",
+        id: null
+    }
+
+    // Если ошибка при получении тела запроса
+    if (!content) {
+        jrpc.error = errors.INVALID_REQUEST;
+        callback(JSON.stringify(jrpc));
         return;
     }
-    
-    this._getBody(request, (content) => {
-        var jrpc = {
-            jsonrpc: '2.0',
-            id: null
-        };
 
-        // Если ошибка при получении тела запроса
-        if (!content) {
-            jrpc.error = errors.INVALID_REQUEST;
-            this._send(response, jrpc);
+    // Пробуем разобрать тело запроса как JSON
+    var json;
+    try {
+        json = JSON.parse(content);
+    } catch(e) {
+        jrpc.error = errors.PARSE_ERROR;
+        callback(JSON.stringify(jrpc));
+        return;
+    }
+
+    // Можем присвоить идентификатор, если он есть в запросе
+    jrpc.id = json.id || null;
+
+    // Проверим признак спецификации
+    if (!json.jsonrpc || json.jsonrpc !== '2.0') {
+        jrpc.error = errors.INVALID_REQUEST;
+        callback(JSON.stringify(jrpc));
+        return;
+    }
+
+    // Проверим наличие метода, и описан ли он
+    if (!json.method || !this._methods[json.method] || !this._methods[json.method].fn) {
+        jrpc.error = errors.METHOD_IS_NOT_FOUND;
+        callback(JSON.stringify(jrpc));
+        return;
+    }
+
+    // Если запрос сформирован правильно - проверим параметры
+    this._validator.check(json.params, this._methods[json.method].rules, (error, params)=>{
+        // Если ошибка валидации параметров
+        if (error) {
+            jrpc.error = error;
+            // Отправляем ответ, только в случае, если задан идентификатор
+            callback(jrpc.id ? JSON.stringify(jrpc) : '');
             return;
         }
-
-        // Пробуем разобрать тело запроса как JSON
-        var json;
+        
+        // Пытаемся выполнить метод обработчика
         try {
-            json = JSON.parse(content);
-        } catch(e) {
-            console.log(e);
-            jrpc.error = errors.PARSE_ERROR;
-            this._send(response, jrpc);
-            return;
-        }
-
-        // Можем присвоить идентификатор, если он есть в запросе
-        jrpc.id = json.id || null;
-
-        // Проверим признак спецификации
-        if (!json.jsonrpc || json.jsonrpc !== '2.0') {
-            jrpc.error = errors.INVALID_REQUEST;
-            this._send(response, jrpc);
-            return;
-        }
-
-        // Проверим наличие метода, и описан ли он
-        if (!json.method || !this._methods[json.method] || !this._methods[json.method].fn) {
-            jrpc.error = errors.METHOD_IS_NOT_FOUND;
-            this._send(response, jrpc);
-            return;
-        }
-
-        // Проверим параметры
-        this._checkParams(this._methods[json.method].rules, json.params, (err, params) => {
-            if (err) {
-                jrpc.error = err;
-                this._send(response, jrpc);
-                return;
-            }
-
-            // Выполним метод, передав в него параметры и коллбэк
-            this._methods[json.method].fn(params, (err, result, force)=>{
-                if (err) {
-                    jrpc.error = err;
-                    this._send(response, jrpc, force);
+            this._methods[json.method].fn(params, (error, result)=>{
+                // При обработанной ошибке
+                if (error) {
+                    jrpc.error = error;
+                    callback(JSON.stringify(jrpc));
                     return;
                 }
-
+    
                 jrpc.result = result;
-                this._send(response, jrpc, force);
-                return;
+
+                // Отправляем ответ, только в случае, если задан идентификатор
+                callback(jrpc.id ? JSON.stringify(jrpc) : '');
             });
-
-        });
+        } catch (e) {
+            console.log(e)
+            jrpc.error = Object.assign({data: e.message}, errors.SERVER_ERROR);
+            callback(JSON.stringify(jrpc));
+        }
     });
 };
-
-Server.prototype._getBody = function(request, callback) {
-    let buffers = [];
-    request.on('data', (chunk) => {
-        buffers.push(chunk);
-    }).on('end', () => {
-        let content = Buffer.concat(buffers).toString('utf8');
-        callback(content);
-    }).on('error', (e)=>{
-        console.log(e);
-        callback();
-    });
-};
-
-Server.prototype._checkParams = function(rules, params, callback) {
-    // Если параметры не переданы
-    if (!params || typeof(params) !== 'object') {
-        let error = Object.assign({data: 'Params is not object or array'}, errors.INVALID_PARAMS);
-        callback(error);
-        return;
-    }
-
-    // Если правила не заданы
-    if (!rules && rules !== 0) {
-        callback(undefined, params);
-        return;
-    }
-
-
-    // Если проверяется длина массива
-    if (typeof(rules) === 'number') {
-        // Если передан не массив
-        if (!Array.isArray(params)) {
-            let error = Object.assign({data: 'Params must be array'}, errors.INVALID_PARAMS);
-            callback(error);
-            return;
-        }
-
-        // Если указана длина массива и он ей не соответствует
-        if (rules !== 0 && params.length !== rules) {
-            let error = Object.assign({data: 'Params array must have length ' + rules}, errors.INVALID_PARAMS);
-            callback(error);
-            return;
-        }
-
-        // Если длина не указана (0) или массив ей соответствует
-        callback(undefined, params);
-        return;
-    }
-
-    // Если проверяется объект
-    var checkedParams = {};
-    for (let param in rules) {
-        if (rules[param] === true && params[param] !== undefined) {
-            // Если параметр обязателен и он есть
-            checkedParams[param] = params[param];
-        } else if (rules[param] === true && params[param] === undefined) {
-            // Если параметр обязателен и его нет - прерываемся
-            let error = Object.assign({data: 'Param ' + param + ' is not finded'}, errors.INVALID_PARAMS);
-            callback(error);
-            return;
-        } else if (rules[param] === false && params[param] !== undefined) {
-            // Если параметр не обязателен и он есть
-            checkedParams[param] = params[param];
-        } else if (rules[param] === null && !params[param]) {
-            // Если нулибельный параметр не обязателен, но он есть и равен пустой строке или нулю
-            checkedParams[param] = null;
-        } else if (rules[param] === null && params[param]) {
-            checkedParams[param] = params[param];
-        }
-    }
-
-    callback(undefined, checkedParams);
-}
-
-
-
-Server.prototype._send = function(response, jrpc, force) {
-    response.writeHead(200, this._headers);
-    let content = (jrpc && (jrpc.error || jrpc.id || force)) ? JSON.stringify(jrpc) : undefined;
-    response.end(content);
-}
 
 module.exports = Server;

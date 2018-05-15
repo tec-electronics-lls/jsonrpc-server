@@ -10,5 +10,8 @@
     },
     "scripts": {},
     "author": "Roman Sorokin <mail@r1000.ru>",
-    "license": "MIT"
+    "license": "MIT",
+    "dependencies": {
+        "nats": "0.8.10"
+    }
 }
