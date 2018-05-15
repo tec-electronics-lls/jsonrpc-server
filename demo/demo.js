@@ -24,5 +24,5 @@ server.on('Summary', 3, (params, response) => {
 
 server.listen();
 server.nats({
-    url: 'nats://192.168.100.3:4222'
-}, 'Test')
+    url: 'nats://localhost:4222'
+}, 'MyChannel')
