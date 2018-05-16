@@ -71,6 +71,9 @@ Server.prototype._onRequest = function(content, callback) {
 
     // Можем присвоить идентификатор, если он есть в запросе
     jrpc.id = json.id || null;
+    
+    // Параметры - не обязательный элемент. Если он не передан - присвоим NULL, так как при проверке типа - это тоже объект
+    json.params = jrpc.params || null;
 
     // Проверим признак спецификации
     if (!json.jsonrpc || json.jsonrpc !== '2.0') {
@@ -87,7 +90,7 @@ Server.prototype._onRequest = function(content, callback) {
     }
 
     // Проверим, являются ли параметры объектом или массивом
-    if (!json.params || typeof(json.params) !== 'object') {
+    if (typeof(json.params) !== 'object') {
         jrpc.error = errors.INVALID_PARAMS;
         callback(JSON.stringify(jrpc));
         return;
