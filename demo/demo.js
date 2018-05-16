@@ -14,7 +14,7 @@ server.on('Ping', (params, response) => {
 });
 
 // Складываем значения переданного массива длиной в 3 элемента
-server.on('Summary', 3, (params, response) => {
+server.on('Summary', (params, response) => {
     var sum = 0;
     for (let i in params) {
         sum += params[i];
@@ -23,6 +23,7 @@ server.on('Summary', 3, (params, response) => {
 });
 
 server.listen();
+/*
 server.nats({
     url: 'nats://localhost:4222'
-}, 'MyChannel')
+}, 'MyChannel')*/

@@ -1,12 +1,9 @@
 const errors = require('./modules/errors'),
     HttpServer = require('./modules/http-server'),
     NatsServer = require('./modules/nats-server');
-    Validator = require('./modules/validator');
 
 var Server = function(headers, server) {
     this._methods = {};
-    
-    this._validator = new Validator();
 
     this._http = new HttpServer(headers, server);
     
@@ -29,16 +26,8 @@ var Server = function(headers, server) {
  * @param {object} rules Правила валидации параметров
  * @param {function} func Функция, выполняемая для обработки метода
  */
-Server.prototype.on = function(method, rules, func) {
-    if (typeof(rules) === 'function') {
-        func = rules;
-        rules = false;
-    }
-
-    this._methods[method] = {
-        fn: func,
-        rules: rules
-    };
+Server.prototype.on = function(method, func) {
+    this._methods[method] = func;
 };
 
 
@@ -91,43 +80,41 @@ Server.prototype._onRequest = function(content, callback) {
     }
 
     // Проверим наличие метода, и описан ли он
-    if (!json.method || !this._methods[json.method] || !this._methods[json.method].fn) {
+    if (!json.method || !this._methods[json.method]) {
         jrpc.error = errors.METHOD_IS_NOT_FOUND;
         callback(JSON.stringify(jrpc));
         return;
     }
 
-    // Если запрос сформирован правильно - проверим параметры
-    this._validator.check(json.params, this._methods[json.method].rules, (error, params)=>{
-        // Если ошибка валидации параметров
-        if (error) {
-            jrpc.error = error;
+    // Проверим, являются ли параметры объектом или массивом
+    if (!json.params || typeof(json.params) !== 'object') {
+        jrpc.error = errors.INVALID_PARAMS;
+        callback(JSON.stringify(jrpc));
+        return;
+    }
+
+    // Пытаемся выполнить метод обработчика
+    console.log(this._methods);
+    try {
+        this._methods[json.method](json.params, (error, result)=>{
+            // При обработанной ошибке
+            if (error) {
+                jrpc.error = error;
+                callback(JSON.stringify(jrpc));
+                return;
+            }
+
+            jrpc.result = result;
+
             // Отправляем ответ, только в случае, если задан идентификатор
             callback(jrpc.id ? JSON.stringify(jrpc) : '');
-            return;
-        }
-        
-        // Пытаемся выполнить метод обработчика
-        try {
-            this._methods[json.method].fn(params, (error, result)=>{
-                // При обработанной ошибке
-                if (error) {
-                    jrpc.error = error;
-                    callback(JSON.stringify(jrpc));
-                    return;
-                }
-    
-                jrpc.result = result;
+        });
+    } catch (e) {
+        console.log(e)
+        jrpc.error = Object.assign({data: e.message}, errors.SERVER_ERROR);
+        callback(JSON.stringify(jrpc));
+    }
 
-                // Отправляем ответ, только в случае, если задан идентификатор
-                callback(jrpc.id ? JSON.stringify(jrpc) : '');
-            });
-        } catch (e) {
-            console.log(e)
-            jrpc.error = Object.assign({data: e.message}, errors.SERVER_ERROR);
-            callback(JSON.stringify(jrpc));
-        }
-    });
 };
 
 module.exports = Server;
