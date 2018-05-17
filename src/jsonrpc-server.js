@@ -73,7 +73,7 @@ Server.prototype._onRequest = function(content, callback) {
     jrpc.id = json.id || null;
     
     // Параметры - не обязательный элемент. Если он не передан - присвоим NULL, так как при проверке типа - это тоже объект
-    json.params = jrpc.params || null;
+    json.params = json.params || null;
 
     // Проверим признак спецификации
     if (!json.jsonrpc || json.jsonrpc !== '2.0') {
