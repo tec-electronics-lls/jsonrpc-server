@@ -97,7 +97,6 @@ Server.prototype._onRequest = function(content, callback) {
     }
 
     // Пытаемся выполнить метод обработчика
-    console.log(this._methods);
     try {
         this._methods[json.method](json.params, (error, result)=>{
             // При обработанной ошибке
