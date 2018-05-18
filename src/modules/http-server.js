@@ -51,8 +51,16 @@ Server.prototype._getRequestBody = function(request, callback) {
 
 
 Server.prototype.listen = function(options, callback) {
+    if (typeof(options) === 'function') {
+        callback = options;
+        options = {};
+    }
+    
     options = options || {};
-    this._server.listen(options.port || 8080, options.iface || '127.0.0.1', callback);
+    options.host = options.host || '127.0.0.1';
+    options.port = options.port || 8080;
+
+    this._server.listen(options, callback);
 }
 
 module.exports = Server;

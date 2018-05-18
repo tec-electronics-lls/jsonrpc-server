@@ -31,17 +31,12 @@ Server.prototype.on = function(method, func) {
 };
 
 
-Server.prototype.listen = function(port, iface, callback) {
-    if (typeof(interface) === 'function') {
-        callback = interface;
-        interface = undefined;
-    }
-
-    this._http.listen(port || 8080, iface, callback);
+Server.prototype.http = function(options, callback) {
+    this._http.listen(options, callback);
 };
 
-Server.prototype.nats = function(options, channel) {
-    this._nats.listen(options, channel);
+Server.prototype.nats = function(channel, options, callback) {
+    this._nats.listen(channel, options, callback);
 }
 
 

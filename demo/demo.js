@@ -22,8 +22,10 @@ server.on('Summary', (params, response) => {
     response(undefined, sum);
 });
 
-server.listen();
-/*
-server.nats({
-    url: 'nats://localhost:4222'
-}, 'MyChannel')*/
+server.http(()=>{
+    console.log('HTTP listening')
+});
+
+server.nats('MyChannel', ()=>{
+    console.log('NATS listening');
+});

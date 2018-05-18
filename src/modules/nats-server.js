@@ -10,9 +10,21 @@ var NatsServer = function() {
 
 
 
-NatsServer.prototype.listen = function(options, channel) {
+NatsServer.prototype.listen = function( channel, options,callback) {
+    if (typeof(options) === 'function') {
+        callback = options;
+        options = {};
+    }
+    
+    options = options || {};
+    options.url = options.url || 'nats://127.0.0.1:4222';
+
     this._server = NATS.connect(options);
 
+    if (callback) {
+        this._server.on('connect', callback);
+    }
+    
     this._server.subscribe(channel, (input, responseChannel)=>{
         this.onRequest(input, (output)=>{
             output = output || '{}';
