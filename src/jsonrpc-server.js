@@ -1,4 +1,4 @@
-const errors = require('./modules/errors'),
+const errors = require('jrpc-errors'),
     HttpServer = require('./modules/http-server'),
     NatsServer = require('./modules/nats-server');
 
@@ -108,7 +108,7 @@ Server.prototype._onRequest = function(content, callback) {
         });
     } catch (e) {
         console.log(e)
-        jrpc.error = Object.assign({data: e.message}, errors.SERVER_ERROR);
+        jrpc.error = Object.assign(errors.INTERNAL_ERROR, {data: e.message});
         callback(JSON.stringify(jrpc));
     }
 

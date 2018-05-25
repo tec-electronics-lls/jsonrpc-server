@@ -22,10 +22,15 @@ server.on('Summary', (params, response) => {
     response(undefined, sum);
 });
 
+server.on('Error', (params, response) => {
+    throw new Error('Achtung!')
+});
+
 server.http(()=>{
     console.log('HTTP listening')
 });
-
+/*
 server.nats('MyChannel', ()=>{
     console.log('NATS listening');
 });
+*/
