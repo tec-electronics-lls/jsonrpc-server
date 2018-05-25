@@ -1,4 +1,4 @@
-const errors = require('jrpc-errors'),
+const errors = require('jsonrpc-errors'),
     HttpServer = require('./modules/http-server'),
     NatsServer = require('./modules/nats-server');
 

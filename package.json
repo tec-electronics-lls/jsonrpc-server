@@ -13,6 +13,6 @@
     "license": "MIT",
     "dependencies": {
         "nats": "0.8.10",
-        "jrpc-errors": "git+https://github.com/tec-electronics-lls/jsonrpc-errors.git"
+        "jsonrpc-errors": "git+https://github.com/tec-electronics-lls/jsonrpc-errors.git"
     }
 }
