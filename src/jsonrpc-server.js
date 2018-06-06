@@ -10,12 +10,12 @@ var Server = function(headers, server) {
     var self = this;
     
     this._http.onRequest = function(input, callback) {
-        self._onRequest(input, callback);
+        self._onRequest(input, callback, 'http');
     }
     
     this._nats = new NatsServer();
     this._nats.onRequest = function(input, callback) {
-        self._onRequest(input, callback);
+        self._onRequest(input, callback, 'nats');
     }
     
 }
@@ -41,7 +41,7 @@ Server.prototype.nats = function(channel, options, callback) {
 
 
 
-Server.prototype._onRequest = function(content, callback) {
+Server.prototype._onRequest = function(content, callback, channel) {
     let jrpc = {
         jsonrpc: "2.0",
         id: null
@@ -93,19 +93,55 @@ Server.prototype._onRequest = function(content, callback) {
 
     // Пытаемся выполнить метод обработчика
     try {
-        this._methods[json.method](json.params, (error, result)=>{
-            // При обработанной ошибке
-            if (error) {
-                jrpc.error = error;
-                callback(JSON.stringify(jrpc));
-                return;
-            }
+        if (this._methods[json.method].length === 1) {
+            this._methods[json.method]((error, result)=>{
+                // При обработанной ошибке
+                if (error) {
+                    jrpc.error = error;
+                    callback(JSON.stringify(jrpc));
+                    return;
+                }
+    
+                jrpc.result = result;
+    
+                // Отправляем ответ, только в случае, если задан идентификатор
+                callback(jrpc.id ? JSON.stringify(jrpc) : '');
+            });
+        } else if(this._methods[json.method].length === 2) {
+            this._methods[json.method](json.params, (error, result)=>{
+                // При обработанной ошибке
+                if (error) {
+                    jrpc.error = error;
+                    callback(JSON.stringify(jrpc));
+                    return;
+                }
+    
+                jrpc.result = result;
+    
+                // Отправляем ответ, только в случае, если задан идентификатор
+                callback(jrpc.id ? JSON.stringify(jrpc) : '');
+            });
+        } else if (this._methods[json.method].length === 3) {
+            this._methods[json.method](json.params, channel, (error, result)=>{
+                // При обработанной ошибке
+                if (error) {
+                    jrpc.error = error;
+                    callback(JSON.stringify(jrpc));
+                    return;
+                }
+    
+                jrpc.result = result;
+    
+                // Отправляем ответ, только в случае, если задан идентификатор
+                callback(jrpc.id ? JSON.stringify(jrpc) : '');
+            });
+        } else {
+            jrpc.error = errors.INTERNAL_ERROR;
+            callback(JSON.stringify(jrpc));
+            return;
+        }
 
-            jrpc.result = result;
-
-            // Отправляем ответ, только в случае, если задан идентификатор
-            callback(jrpc.id ? JSON.stringify(jrpc) : '');
-        });
+        
     } catch (e) {
         console.log(e)
         jrpc.error = Object.assign(errors.INTERNAL_ERROR, {data: e.message});
