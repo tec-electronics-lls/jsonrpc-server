@@ -26,8 +26,17 @@ var Server = function(headers, server) {
  * @param {object} rules Правила валидации параметров
  * @param {function} func Функция, выполняемая для обработки метода
  */
-Server.prototype.on = function(method, func) {
-    this._methods[method] = func;
+Server.prototype.on = function(method, validator, func) {
+    if (!func) {
+        func = validator;
+        validator = function(params) {
+            return params;
+        }
+    }
+    this._methods[method] = {
+        func: func,
+        validator: validator
+    };
 };
 
 
@@ -84,17 +93,19 @@ Server.prototype._onRequest = function(content, callback, channel) {
         return;
     }
 
-    // Проверим, являются ли параметры объектом или массивом
-    if (typeof(json.params) !== 'object') {
-        jrpc.error = errors.INVALID_PARAMS;
+    // Проверим параметры
+    try {
+        params = this._methods[json.method].validator(json.params);
+    } catch(e) {
+        jrpc.error = Object.assign(errors.INVALID_PARAMS, {data: e.message});
         callback(JSON.stringify(jrpc));
         return;
     }
 
     // Пытаемся выполнить метод обработчика
     try {
-        if (this._methods[json.method].length === 1) {
-            this._methods[json.method]((error, result)=>{
+        if (this._methods[json.method].func.length === 1) {
+            this._methods[json.method].func((error, result)=>{
                 // При обработанной ошибке
                 if (error) {
                     jrpc.error = error;
@@ -107,8 +118,8 @@ Server.prototype._onRequest = function(content, callback, channel) {
                 // Отправляем ответ, только в случае, если задан идентификатор
                 callback(jrpc.id ? JSON.stringify(jrpc) : '');
             });
-        } else if(this._methods[json.method].length === 2) {
-            this._methods[json.method](json.params, (error, result)=>{
+        } else if(this._methods[json.method].func.length === 2) {
+            this._methods[json.method].func(json.params, (error, result)=>{
                 // При обработанной ошибке
                 if (error) {
                     jrpc.error = error;
@@ -121,8 +132,8 @@ Server.prototype._onRequest = function(content, callback, channel) {
                 // Отправляем ответ, только в случае, если задан идентификатор
                 callback(jrpc.id ? JSON.stringify(jrpc) : '');
             });
-        } else if (this._methods[json.method].length === 3) {
-            this._methods[json.method](json.params, channel, (error, result)=>{
+        } else if (this._methods[json.method].func.length === 3) {
+            this._methods[json.method].func(json.params, channel, (error, result)=>{
                 // При обработанной ошибке
                 if (error) {
                     jrpc.error = error;
@@ -136,12 +147,8 @@ Server.prototype._onRequest = function(content, callback, channel) {
                 callback(jrpc.id ? JSON.stringify(jrpc) : '');
             });
         } else {
-            jrpc.error = errors.INTERNAL_ERROR;
-            callback(JSON.stringify(jrpc));
-            return;
+            throw new Error('Invalid method arguments');
         }
-
-        
     } catch (e) {
         console.log(e)
         jrpc.error = Object.assign(errors.INTERNAL_ERROR, {data: e.message});
