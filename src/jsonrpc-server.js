@@ -76,9 +76,7 @@ Server.prototype._onRequest = function(content, callback, channel) {
     // Можем присвоить идентификатор, если он есть в запросе
     jrpc.id = json.id || null;
     
-    // Параметры - не обязательный элемент. Если он не передан - присвоим NULL, так как при проверке типа - это тоже объект
-    json.params = json.params || null;
-
+    
     // Проверим признак спецификации
     if (!json.jsonrpc || json.jsonrpc !== '2.0') {
         jrpc.error = errors.INVALID_REQUEST;
@@ -94,8 +92,16 @@ Server.prototype._onRequest = function(content, callback, channel) {
     }
 
     // Проверим параметры
+    let params;
+
     try {
-        params = this._methods[json.method].validator(json.params);
+        if (typeof(this._methods[json.method].validator) === 'object') {
+            params = this._methods[json.method].validator.check(json.params);
+        } else if (typeof(this._methods[json.method].validator) === 'function'){
+            params = this._methods[json.method].validator(json.params);
+        } else {
+            params = json.params;
+        }
     } catch(e) {
         jrpc.error = Object.assign(errors.INVALID_PARAMS, {data: e.message});
         callback(JSON.stringify(jrpc));
