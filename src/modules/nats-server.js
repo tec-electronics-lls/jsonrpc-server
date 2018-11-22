@@ -9,6 +9,27 @@ var NatsServer = function() {
 }
 
 
+NatsServer.prototype.addChannel = function(channel, callback) {
+    if (!this._server) {
+        if (callback) {
+            callback('NATS is not connected.')
+        }
+        return;
+    }
+    
+    this._server.subscribe(channel, (input, responseChannel, requestChannel)=>{
+        this.onRequest(input, requestChannel, (output)=>{
+            output = output || '{}';
+            this._server.publish(responseChannel, output);
+        })
+    });
+
+    if (callback) {
+        callback();
+    }
+
+}
+
 
 NatsServer.prototype.listen = function( channel, options, callback) {
     if (!callback) {
@@ -26,12 +47,9 @@ NatsServer.prototype.listen = function( channel, options, callback) {
     
     this._server = NATS.connect(options);
 
-    if (callback) {
-        
-    }
     this._server.on('connect', ()=>{
-        this._server.subscribe(channel, (input, responseChannel)=>{
-            this.onRequest(input, (output)=>{
+        this._server.subscribe(channel, (input, responseChannel, requestChannel)=>{
+            this.onRequest(input, requestChannel, (output)=>{
                 output = output || '{}';
                 this._server.publish(responseChannel, output);
             })

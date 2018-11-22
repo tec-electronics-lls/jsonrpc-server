@@ -1,4 +1,4 @@
-const errors = require('jsonrpc-errors'),
+const errors = require('./modules/jsonrpc-errors'),
     HttpServer = require('./modules/http-server'),
     NatsServer = require('./modules/nats-server');
 
@@ -14,8 +14,8 @@ var Server = function(headers, server) {
     }
     
     this._nats = new NatsServer();
-    this._nats.onRequest = function(input, callback) {
-        self._onRequest(input, callback, 'nats');
+    this._nats.onRequest = function(input, channel, callback) {
+        self._onRequest(input, callback, channel);
     }
     
 }
@@ -46,6 +46,10 @@ Server.prototype.http = function(options, callback) {
 
 Server.prototype.nats = function(channel, options, callback) {
     this._nats.listen(channel, options, callback);
+}
+
+Server.prototype.addNatsChannel = function(channel, callback) {
+    this._nats.addChannel(channel, callback);
 }
 
 

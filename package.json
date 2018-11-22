@@ -12,7 +12,6 @@
     "author": "Roman Sorokin <mail@r1000.ru>",
     "license": "MIT",
     "dependencies": {
-        "nats": "0.8.10",
-        "jsonrpc-errors": "git+https://github.com/tec-electronics-lls/jsonrpc-errors.git"
+        "nats": "0.8.10"
     }
 }
